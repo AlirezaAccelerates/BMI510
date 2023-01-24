@@ -1,7 +1,7 @@
 # BMI510 
 
 This is my repo for the BMI 510 course in spring 2023 homework and assignments. \
-Please reach out alireza.rafiei@emory.edu. \
+Please reach out alireza.rafiei@emory.edu. 
 
 
 <div align="center">
