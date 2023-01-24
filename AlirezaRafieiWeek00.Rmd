@@ -1,0 +1,47 @@
+---
+Title: "BMI510 | HW-00"
+Auther: Alireza Rafiei
+Output: Linear regression results -- Estimation of π using a MacLaurin series.
+---
+
+```{r}
+### Q1: A simple linear regression
+
+
+# Definding a datframe
+Data = data.frame(
+  x = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+  y = c(589.6, 1173.8, 1758, 2344.8, 2930, 3514.7, 4098.8, 4685, 5269, 5854))
+
+# Printing the defined data frame
+Data
+
+## Plot a x/y scatter plot with the data
+plot(Data$x, Data$y)
+
+## Regress y onto x
+Data.regression <- lm(y ~ x, data=Data)
+
+## Generate a summary of the regression
+summary(Data.regression)
+
+## Add the regression line to the scatter plot
+abline(Data.regression)
+```
+```{r}
+### Q2: Use a MacLaurin series to estimate π
+
+MacLaurin_series = function(m){
+  
+  # m is the number of MacLaurin series terms
+  MacLaurin = 0
+  x = 1
+  for (n in 1:m) {
+    MacLaurin_series = ((-1)^(n+1))*(1/(2*n-1))*((x)^(2*n-1))
+    MacLaurin = MacLaurin + MacLaurin_series 
+  }
+  return(4*MacLaurin)
+}
+
+MacLaurin_series(10000)
+```
