@@ -1,0 +1,202 @@
+---
+title: "BMI 510: Homework #1"
+author: "Alireza Rafiei"
+date: "01/23/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+
+# Q1
+
+```{r }
+# First method
+# We assume the machine is filling a high number of packages with a normal distribution.
+
+Pakaging_machine = function(n=10000,mean=12000,std=200){
+  Weight = rnorm(n,mean,std)
+
+  Doses = Weight/200
+  return(sum(Doses<60)/length(Doses))
+  
+}
+
+Pakaging_machine()
+
+# Conclusion: The proportion of packages which contain less than 60 doses is 50% under the current assumption.
+
+
+# Second method
+# We also can use pnorm function to answer Q1
+pnorm(12000,12000,200)
+
+# Conclusion: The proportion of packages which contain less than 60 doses is 50%.
+```
+
+
+# Q2
+
+```{r }
+Reliable_pakaging = function(n=10000,rel=0.05,std=200){
+  
+  for (i in 12000:16000){
+  Weight = rnorm(n,i,std)
+  Doses = Weight/200
+  Threshold = sum(Doses<60)/length(Doses)
+  
+    if (Threshold < rel){
+      Proposed_mean = i
+      break
+    
+    }
+  }
+  return(Proposed_mean)
+  
+}
+
+Reliable_pakaging()
+# Conclusion: We should set the mean on about 12,328 mg so that only 5% of packages contain less than 60 doses.
+
+
+# Second method
+# We also can use qnorm function to answer Q2
+qnorm(0.95,12000,200)
+
+# Conclusion: We should set the mean on exactly 12328.97 mg so that only 5% of packages contain less than 60 doses.
+```
+
+
+# Q3
+
+```{r }
+# Probability of getting 3 heads in a row using a fair coin
+# I tried to produce data and exploit tidyverse page to write a more generalization function for tossing a fair coin problem
+library(tidyverse)
+Toss_prob = function(n = 6, m = 10000){
+  tose = list()
+  for (i in 1:m){
+  tose[[i]] = sample(c(1,2), n, replace= T, prob=c(0.5,0.5))
+  }
+
+  data = as_tibble(do.call(rbind, tose))
+  data$string = do.call(paste, c(data[,1:6], sep=""))
+  data.pattern = data %>% mutate(Three_head_row = (str_detect(string, pattern = '222')))
+  
+  return(sum(data.pattern$Three_head_row)/nrow(data.pattern))
+}
+Toss_prob()
+```
+
+
+# Q4
+
+```{r }
+# Loading the dataset
+data(mtcars)
+
+# First way
+mpg_var1 = as.numeric(mtcars$mpg)
+
+# Second way
+mpg_var2 = as.numeric(mtcars[,c('mpg')])
+
+```
+
+
+# Q5
+
+```{r }
+dplyr::select(mtcars, mpg)
+dplyr::pull(mtcars, mpg)
+
+# The first one is a function to extract a column vector (it returns a data frame with indexed rows and the specified column), 
+# while the second one is a function to generate a vector (it returns the selected columns as a vector).
+```
+
+
+# Q6
+
+```{r }
+# Calculating the sum of squares of the numbers 1 through 10
+sum((1:10)**2)
+```
+
+
+# Q7
+
+```{r }
+# Create the vector
+Vec = 1:10
+
+# Sum of squares using %*%
+Sum_squares = Vec %*% Vec
+Sum_squares
+```
+
+
+# Q8
+
+```{r }
+# This function returns the mean and standard deviation of input vector
+MnSd = function(vec, ...){
+  Imputation = list(...)
+  
+  if ('na.rm' %in% names(Imputation)){
+    mean_vec = mean(vec, na.rm = Imputation$na.rm)
+    std_vec = sd(vec, na.rm = Imputation$na.rm)
+    
+  }
+  else{
+    mean_vec = mean(vec, na.rm = TRUE)
+    std_vec = sd(vec, na.rm = TRUE)
+  }
+  
+  return(c(mean_vec,std_vec))
+  
+}
+
+
+# Checking the function
+A = c(1,2,NA,4,5)
+MnSd(A)
+print('--------------------------------------------')
+MnSd(A, na.rm = T)
+```
+
+
+
+# Q9
+
+```{r }
+# Adding janitor package
+library(janitor)
+
+# Cross-tabulate
+mtcars %>% tabyl(cyl, gear)
+
+print('--------------------------------------------')
+
+# Making a table with frequency counts
+mtcars %>% tabyl(cyl, gear) %>% 
+        adorn_totals("row")
+```
+
+
+# Q10
+
+```{r }
+# The previous table with percentages 
+mtcars %>% tabyl(cyl, gear) %>% 
+          adorn_totals("row") %>%
+          adorn_percentages() %>%
+          adorn_pct_formatting(rounding = "half up", digits = 3) %>%
+          adorn_ns() 
+        
+```
+
+
