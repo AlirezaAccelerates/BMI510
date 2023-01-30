@@ -1,0 +1,190 @@
+---
+title: "BMI 510: Homework #2"
+author: "Alireza Rafiei"
+date: "01/27/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+
+# Q1
+
+```{r }
+# '''
+# P(E or F) = 0.75 -> P(E) + P(F) = 0.75 -> P(E) = 0.75 - P(F) 
+# -> P(!E) = -0.25 + P(F) and P(!F) = -0.25 + P(E)
+# 
+# P(!E or !F) = P(!E) + P(!F) = -0.25 + P(F) + -0.25 + P(E) = 0.25
+# 
+# '''
+
+print("The answer to the first question is 0.25")
+```
+
+
+# Q2
+
+```{r }
+# '''
+# P(A) + P(B) = 1 -> p + p^2 = 1 -> p^2 + p - 1 = 0 
+# 
+# -> p = (sqrt(5) - 1) / 2 and (-sqrt(5) - 1) / 2 
+# The second answer is not acceptable (probability should be a positive number)
+# -> p = (sqrt(5) - 1) / 2 = 0.618034
+# 
+# 
+# -----------------------------------------------------------------------
+# 
+# 1 + phi = 1 + 0.618034 = 1.618034
+# '''
+
+print("The answer to the second question part 1 is 0.618034")
+print("The answer to the second question part 2 is 1.618034")
+```
+
+
+# Q3
+
+```{r }
+# '''
+# T = Tails, H = heads
+# 
+# Sample space = {TTT, TTH, THT, THH, HHH, HTH, HTT, HHT}
+# 
+# 
+# '''
+
+print("The sample space = {TTT, TTH, THT, THH, HHH, HTH, HTT, HHT}")
+```
+
+
+# Q4
+
+```{r }
+# '''
+# T = Tails, H = heads
+# 
+# A. At least two tosses are heads = {THH,HHH,HTH,HHT}
+# B. The first two tosses are heads = {HHH, HHT}
+# C. The last toss is a tail = {TTT,THT,HTT, HHT}
+# 
+# '''
+print("A = {THH,HHH,HTH,HHT}")
+print("B = {HHH, HHT}")
+print("C = {TTT,THT,HTT, HHT}")
+```
+
+
+# Q5
+
+```{r }
+prob_to_odd = function(p){
+  
+  odd = (p / (1-p))
+  
+  return(odd)
+}
+
+odd_to_prob = function(o){
+  
+  prob = (o / (1+o))
+  
+  return(prob)
+}
+```
+
+
+# Q6
+
+```{r }
+curve(expr = prob_to_odd, from = 0, to= 1, xlab="Probability", ylab="Odd")
+
+curve(expr = odd_to_prob, from = 0, to= 100, xlab="Odd", ylab="Probability")
+
+```
+
+
+# Q7
+
+```{r }
+print('x1     x2')
+print('x1 --> x2')
+print('x1 <-- x2')
+print('x1 --> x2 --> x3')
+print('SES --> water --> cholera')
+print('elevation <-- SES --> water --> cholera')
+
+```
+
+
+# Q8
+
+```{r }
+library(ggplot2)
+sums = c()
+
+histogram = function(n, verbose = 1){
+  
+  for (i in 1:n){
+    sums = c(sums,sum(runif(12, min=0, max=1)))
+  }
+  
+  if (verbose == 1){
+    hist(sums-6, main = 'Histogram with base R', breaks = 10)
+    
+    df = data.frame(sums = sums)
+    return(ggplot(df, aes(x = sums-6)) +
+    geom_histogram(color="black", fill="white", binwidth=0.5) +
+    ggtitle('Histogram with ggplot2'))
+  }
+  
+  if (verbose == 0){
+    return(sums)
+  }
+  
+}
+
+histogram(n = 1000)
+```
+
+
+# Q9
+
+```{r }
+single_random_variable = function(){
+  
+  random_sample = sample(histogram(n = 1000, verbose = 0)/12,1)
+  
+  return(random_sample)
+}
+
+single_random_variable()
+```
+
+
+# Q10
+
+```{r }
+library(tidyverse)
+library(ggplot2)
+
+Simpson_paradox = function(){
+  data = read_csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/simpson_data.csv")
+  
+  data %>% ggplot(aes(x=Exercise, y=Cholesterol, group=Age, color=Age))+
+         geom_point(size=1) + 
+         geom_smooth(method='lm',se=F)+ scale_colour_gradientn(colors=rev(rainbow(5)))+
+         theme(panel.background = element_blank())
+
+}
+
+Simpson_paradox()
+```
+
+
+
