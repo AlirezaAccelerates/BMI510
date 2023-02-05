@@ -31,10 +31,12 @@ plot_frequency_function = function(X, P){
 
 plot_cumulative_function = function(X, P){
   df = data.frame(X = X, P = P)
-  ggplot(df, aes(P)) +
-  stat_ecdf(geom = "step",size = 1.5)+
+    
+  ggplot(df, aes(x = X, y = cumsum(P))) +
+  geom_step(size = 1.5)+
   xlab("X") +
-  ylab("Cumulative Density")
+  ylab("Cumulative Density")+
+  ylim(0,1)
 }
 
 plot_frequency_function(X = 0:3,P = c(0.25,0.125,0.125,0.5))
