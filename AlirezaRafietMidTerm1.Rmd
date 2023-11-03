@@ -1,0 +1,417 @@
+---
+title: "BMI 510: Midterm #1"
+author: "Alireza Rafiei"
+date: "02/25/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+```{r }
+# Required libraries
+library(tidyverse)
+```
+
+### Q1
+## Part A
+
+```{r }
+# Load the data from the URL as a tibble
+data = tibble(read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",show_col_types = FALSE))
+
+# Exclude the record for Patient “bat112”
+my_data = filter(data, Patient != "bat112")
+
+# Select Age, Sex, and num_falls_6_mo columns
+my_data = select(my_data, Age, Sex, num_falls_6_mo)
+
+# Exclude any rows with missing data
+processed_data = drop_na(my_data)
+```
+
+## Part B
+
+```{r }
+# Group the data by Sex and summarize the number of observations
+by_sex = processed_data %>% group_by(Sex) %>% summarize(num_obs = n())
+
+# Group the data overall and summarize the number of observations
+overall = processed_data %>% summarize(num_obs = n())
+
+# Print
+by_sex_str = sprintf("The number of observations for women, men, and for the overall sample:\n Women: %i, \n Men: %i, \n Overal: %i \n",
+                       by_sex$num_obs[1], by_sex$num_obs[2], overall$num_obs[1])
+
+
+# Print the formatted summaries to the console
+cat(by_sex_str, "\n")
+
+##########################################################################################################
+# Group the data by Sex and summarize the average and standard deviation of Age
+by_sex_age = processed_data %>% group_by(Sex) %>% summarize(avg_age = mean(Age), sd_age = sd(Age))
+
+# Group the data overall and summarize the average and standard deviation of Age
+overall_age = processed_data %>% summarize(avg_age = mean(Age), sd_age = sd(Age))
+
+# Print
+by_sex_age_str = sprintf("Average and standard deviation of age by sex:\n Women: Avg = %.2f, SD = %.2f\n Men: Avg = %.2f, SD = %.2f\n",
+                       by_sex_age$avg_age[1], by_sex_age$sd_age[1], by_sex_age$avg_age[2], by_sex_age$sd_age[2])
+
+overall_age_str = sprintf("Average and standard deviation of age for overall sample:\n Avg = %.2f, SD = %.2f\n",
+                        overall_age$avg_age, overall_age$sd_age)
+
+# Print the formatted summaries to the console
+cat(by_sex_age_str, "\n")
+cat(overall_age_str, "\n")
+
+##########################################################################################################
+# Group the data by Sex and summarize the average and standard deviation of num_falls_6_mo
+by_sex_falls <- processed_data %>% group_by(Sex) %>% summarize(avg_falls = mean(num_falls_6_mo), sd_falls = sd(num_falls_6_mo))
+
+# Group the data overall and summarize the average and standard deviation of num_falls_6_mo
+overall_falls = processed_data %>% summarize(avg_falls = mean(num_falls_6_mo), sd_falls = sd(num_falls_6_mo))
+
+# Print
+by_sex_falls_str = sprintf("Average and standard deviation of num_falls_6_mo by sex:\n Women: Avg = %.2f, SD = %.2f\n Men: Avg = %.2f, SD = %.2f\n",
+                       by_sex_falls$avg_falls[1], by_sex_falls$sd_falls[1], by_sex_falls$avg_falls[2], by_sex_falls$sd_falls[2])
+
+overall_falls_str = sprintf("Average and standard deviation of num_falls_6_mo for overall sample:\n Avg = %.2f, SD = %.2f",
+                        overall_falls$avg_falls, overall_falls$sd_falls)
+
+# Print the formatted summaries to the console
+cat(by_sex_falls_str, "\n")
+cat(overall_falls_str, "\n")
+```
+
+## Part C
+# No.1
+
+```{r }
+# Subset the data into two groups based on Sex
+Female = processed_data %>% filter(Sex == "Female")
+Male = processed_data %>% filter(Sex == "Male")
+
+# Calculate the difference in sample means between the two groups
+diff_means = mean(Female$Age) - mean(Male$Age)
+
+# Print the results
+cat("Difference in sample means:", diff_means, "\n")
+
+```
+
+# No.2
+
+```{r }
+# Calculate the pooled variance
+n1 = length(Female$Age)
+n2 = length(Male$Age)
+s1 = sd(Female$Age)
+s2 = sd(Male$Age)
+pooled_var = ((n1 - 1) * s1^2 + (n2 - 1) * s2^2) / (n1 + n2 - 2)
+
+
+# Perform a two-sample t-test using the pooled variance
+t_test_pooled_var = t.test(Female$Age, Male$Age, var.equal = TRUE)
+
+# Print the results
+cat("Pooled variance:", pooled_var, "\n")
+```
+
+# No.3
+
+```{r }
+m1 = mean(Female$Age)
+m2 = mean(Male$Age)
+
+# Calculate the test statistic
+T_stat = (m1 - m2) / sqrt((s1^2/n1) + (s2^2/n2))
+
+# Print the test statistic
+cat("The test statistic T is:", T_stat, "\n")
+```
+
+# No.4
+
+```{r }
+# Find the p-value
+p_value = 2 * pt(-abs(T_stat), df = n1 + n2 - 2)
+
+# Print the results
+cat("P-value:", p_value, "\n")
+cat("Yes, the data seem likely under the null")
+```
+
+# No.5
+
+```{r }
+t_test_var_equal = t.test(Female$Age, Male$Age, var.equal = TRUE)
+
+# Print the results
+cat("p-value:", t_test_var_equal$p.value, "\n")
+cat("95% confidence interval:", t_test_var_equal$conf.int, "\n")
+```
+
+### Q2
+## Part A
+
+```{r }
+# Load the data from the URL as a tibble
+data = tibble(read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",show_col_types = FALSE))
+
+# Exclude the record for Patient “bat112”
+my_data = filter(data, Patient != "bat112")
+
+# Select Age, Sex, and num_falls_6_mo columns
+my_data = select(my_data, Age, Sex, num_falls_6_mo)
+
+# Exclude any rows with missing data
+processed_data = drop_na(my_data)
+```
+
+# No.1
+
+```{r }
+# Define the candidate values of lambda
+lambda_values = seq(from = 1, to = 10, by = 0.01)
+
+# Initialize a vector to store the log likelihoods for each value of lambda
+log_likelihoods = rep(NA, length(lambda_values))
+
+# Loop through the candidate values of lambda and calculate the log likelihood for each value using a function 
+log_likelihood = function(lambda_values, data){
+  for (i in seq_along(lambda_values)) {
+    lambda = lambda_values[i]
+    log_likelihoods[i] = sum(dpois(data$num_falls_6_mo, lambda, log = TRUE))
+  }
+  invisible(log_likelihoods)
+}
+
+log_likelihoods = log_likelihood(lambda_values, processed_data)
+```
+
+
+# No.2
+
+```{r }
+# Create a tibble to store the lambda values and log likelihoods
+log_likelihood_tbl = tibble(lambda = lambda_values, log_likelihood = log_likelihoods)
+
+# Create a line plot of log likelihood as a function of lambda
+ggplot(log_likelihood_tbl, aes(x = lambda, y = log_likelihood)) +
+  geom_line(size=1) +
+  xlab("Poisson distribution parameter (lambda)") +
+  ylab("Log likelihood")
+  
+```
+
+# No.3
+
+```{r }
+# Find the index of the lambda value with the highest log likelihood
+best_index_mle1 = which.max(log_likelihoods)
+
+# Extract the lambda value with the highest log likelihood
+lambda_mle1 = lambda_values[best_index_mle1]
+
+# Print the best lambda value and its corresponding log likelihood
+cat("Best lambda value:", lambda_mle1, "\n")
+cat("Log likelihood:", log_likelihoods[best_index_mle1], "\n")
+
+# Second way
+
+# Calculating the maximum likelihood estimate this time using optim function
+loglik_poisson <- function(lambda, data) {
+  -sum(dpois(data$num_falls_6_mo, lambda, log = TRUE))
+}
+
+# Use optim() to find the maximum likelihood estimate of lambda
+fit = optim(par = 1, fn = loglik_poisson, data = processed_data, lower = 0, upper = 10, method = 'L-BFGS-B')
+
+# Print the results
+cat("Maximum likelihood estimate of lambda:", fit$par, "\n")
+cat("Maximum log-likelihood value:", -fit$value, "\n\n")
+
+cat("As clearly can be seen, the result of calculating the maximum likelihood estimate using grid search and optim function is roughly the same.")
+
+```
+
+## Part B
+
+```{r }
+# Plot a histogram of the num_falls_6_mo variable
+hist(processed_data$num_falls_6_mo, breaks = 100, col = "gray", xlab = "Number of Falls in 6 Months", main = "Histogram of Number of Falls in 6 Months")
+
+cat("Yes, there are two clear outliers - patients with 50 and 180 self-reported falls")
+```
+
+## Part C
+
+```{r }
+# Identify the two outliers of num_falls_6_mo column
+outliers = tail(sort(processed_data$num_falls_6_mo), 2)
+
+# Remove the outliers from the data
+data_without_outliers = processed_data[!processed_data$num_falls_6_mo %in% outliers,]
+
+# Define the candidate values of lambda
+lambda_values2 = seq(from = 0.1, to = 10, by = 0.01)
+
+# Initialize a vector to store the log likelihoods for each value of lambda
+log_likelihoods_without_outliers = rep(NA, length(lambda_values2))
+
+# Loop through the candidate values of lambda and calculate the log likelihood for each value using a function 
+log_likelihood_without_outliers = function(lambda_values, data){
+  for (i in seq_along(lambda_values)) {
+    lambda = lambda_values[i]
+    log_likelihoods_without_outliers[i] = sum(dpois(data$num_falls_6_mo, lambda, log = TRUE))
+  }
+  invisible(log_likelihoods_without_outliers)
+}
+
+log_likelihoods_without_outliers = log_likelihood_without_outliers(lambda_values2, data_without_outliers)
+
+# Find the index of the lambda value with the highest log likelihood
+best_index_mle2 = which.max(log_likelihoods_without_outliers)
+
+# Extract the lambda value with the highest log likelihood
+lambda_mle2 = lambda_values2[best_index_mle2]
+
+# Print the best lambda value and its corresponding log likelihood
+cat("Best lambda value:", lambda_mle2, "\n")
+cat("Log likelihood:", log_likelihoods_without_outliers[best_index_mle2], "\n")
+
+# Create a tibble to store the lambda values and log likelihoods
+log_likelihood_without_outliers_tbl = tibble(lambda = lambda_values2, log_likelihood = log_likelihoods_without_outliers)
+
+# Create a line plot of log likelihood as a function of lambda
+ggplot(log_likelihood_without_outliers_tbl, aes(x = lambda, y = log_likelihood)) +
+  geom_line(size=1) +
+  xlab("Poisson distribution parameter (lambda)") +
+  ylab("Log likelihood")
+```
+
+## Part D
+# No.1
+
+```{r }
+# Calculate the log likelihood of the cleaned-up dataset under lambda_hat
+loglik_clean_mle1 = sum(dpois(data_without_outliers$num_falls_6_mo, lambda_mle1, log = TRUE))
+loglik_clean_mle2 = sum(dpois(data_without_outliers$num_falls_6_mo, lambda_mle2, log = TRUE))
+
+```
+
+## Part D
+# No.2
+
+```{r }
+cat("Log Likelihood of cleaned-up dataset under lambda for maximum likelihood estimate 1:", loglik_clean_mle1, "\n")
+cat("Log Likelihood of cleaned-up dataset under lambda for maximum likelihood estimate 2:", loglik_clean_mle2, "\n\n")
+
+
+cat("Log Likelihood of cleaned-up dataset under lambda for maximum likelihood estimate 2 is higher!")
+```
+
+### Q3
+## Part A
+
+```{r }
+# Assume total campaign expenditures is x
+# 0.12x = 365000 --> x = 365000/0.12
+
+x = 365000/0.12
+
+cat("Santos' total campaign expenditures were", round(x))
+
+
+```
+
+## Part B
+
+```{r }
+# Download the dataset and save as a tibble called "spending"
+spending = tibble(read_csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/campaign-spending.csv",show_col_types = FALSE))
+
+# Select the first and last columns of the tibble
+first_last_cols = select(spending, 1, last_col())
+
+# Create a new row with Representative="George Sangos (R-NY)" and Total Spent = 3041667
+new_row = tibble(Representative = "George Sangos (R-NY)", `Total Spent` = 3041667)
+
+# Bind the new row to the bottom of the first_last_cols tibble
+spending_new = bind_rows(first_last_cols, new_row)
+```
+
+## Part C
+
+```{r }
+# Add a new column "Rank" to spending using the rank function
+spending = spending_new %>% mutate(Rank = rank(`Total Spent`))
+
+# Calculate the number of representatives who spent less than Santos
+num = sum(spending$`Total Spent` < 3041667)
+
+# Calculate the proportion of representatives who spent less than Santos
+prop = num / nrow(spending)
+
+# Print the results
+cat("Number of representatives who spent less than Santos:", num, "\n")
+cat("Proportion of representatives who spent less than Santos:", prop)
+```
+
+## Part D
+
+```{r }
+# Create an ECDF function of Total Spent
+spending_ecdf = ecdf(spending$`Total Spent`)
+
+x = sort(unique(spending$`Total Spent`))
+# plot the empirical cumulative distribution
+plot(x, spending_ecdf(x), type = 'n', xlab = "Total Spent", ylab = "CDF", main = "Empirical Cumulative Distribution")
+lines(x, spending_ecdf(x), type = 's', lwd = 2)
+santos_spending = spending$`Total Spent`[(which(spending=="George Sangos (R-NY)",arr.ind=TRUE)[1])]
+# add the lines for Santos' spending
+abline(v = santos_spending, col = "red", lwd = 2)
+abline(h = spending_ecdf(santos_spending), col = "red", lwd = 2)
+grid()
+```
+
+## Part E
+
+```{r }
+# calculate total undocumented spending assuming most campaigns are missing 2% of documentation
+spending_undoc = spending %>% 
+  mutate(Undocumented_Spending = `Total Spent` * 0.02)
+
+# calculate Santos' undocumented spending
+spending_undoc$Undocumented_Spending[(which(spending_undoc=="George Sangos (R-NY)",arr.ind=TRUE)[1])] = santos_spending*0.12
+
+# Create an ECDF function of undocumented spending
+spending_undoc_ecdf <- ecdf(spending_undoc$Undocumented_Spending)
+
+x2 = sort(unique(spending_undoc$Undocumented_Spending))
+# plot the empirical cumulative distribution
+plot(x2, spending_undoc_ecdf(x2),type = 'n', xlab = "Total Undocumented Spending", ylab = "CDF", main = "Empirical Cumulative Distribution")
+lines(x2, spending_undoc_ecdf(x2), type = 's', lwd = 2)
+santos_spending_undoc = spending_undoc$Undocumented_Spending[(which(spending_undoc=="George Sangos (R-NY)",arr.ind=TRUE)[1])]
+
+# add the lines for Santos' spending
+abline(v = santos_spending_undoc, col = "red", lwd = 2)
+abline(h = spending_undoc_ecdf(santos_spending_undoc), col = "red", lwd = 2)
+grid()
+```
+
+## Part F
+
+```{r }
+# Number of campaigns with more total spending than Santos
+cat("Number of campaigns with more total spending than Santos:",sum(spending_ecdf(spending$`Total Spent`) > spending_ecdf(santos_spending)),"\n")
+
+# Number of campaigns with more undocumented spending than Santos
+cat("Number of campaigns with more undocumented spending than Santos:", sum(spending_undoc_ecdf(spending_undoc$Undocumented_Spending) > spending_undoc_ecdf(santos_spending_undoc)),"\n\n")
+
+cat("Undocumented spending of Santos campaign is more atypical")
+```
