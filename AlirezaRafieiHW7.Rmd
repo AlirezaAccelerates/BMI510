@@ -1,0 +1,179 @@
+---
+title: "Homework 7"
+author: "Alireza Rafiei"
+date: "03/18/2023"
+output: 
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+
+```{r}
+# Required libraries
+library(dplyr)
+```
+
+# Q1
+```{r}
+# Bonferroni-Holm function
+bonferroni_holm = function(p, alpha) {
+  
+  adj_p = p.adjust(p, method = "holm")
+  sig = adj_p < alpha
+  
+  return(sig)
+}
+
+
+# Test the Bonferroni-Holm function with the ordered and unordered inputs.
+p_ordered = c(0.0025, 0.0050, 0.0075, 0.0100, 0.0125, 0.0150, 0.0175, 0.0200, 0.0225, 0.0250)
+p_unordered = c(0.0075, 0.0050, 0.0125, 0.0150, 0.0100, 0.0025, 0.0175, 0.0225, 0.0250, 0.0200)
+alpha = 0.05
+sig_ordered = bonferroni_holm(p_ordered, alpha)
+sig_unordered = bonferroni_holm(p_unordered, alpha)
+cat('Test the Bonferroni-Holm function with the ordered inputs:', sig_ordered,'\n')
+cat('Test the Bonferroni-Holm function with unordered inputs:', sig_unordered)
+```
+
+```{r}
+# FDR function
+fdr_bh = function(p, alpha) {
+  
+  adj_p = p.adjust(p, method = "BH")
+  sig = adj_p < alpha
+  
+  return(sig)
+}
+
+# Test the Bonferroni-Holm function with the ordered and unordered inputs.
+p_ordered = c(0.0025, 0.0050, 0.0075, 0.0100, 0.0125, 0.0150, 0.0175, 0.0200, 0.0225, 0.0250)
+p_unordered = c(0.0075, 0.0050, 0.0125, 0.0150, 0.0100, 0.0025, 0.0175, 0.0225, 0.0250, 0.0200)
+alpha = 0.05
+sig_ordered = fdr_bh(p_ordered, alpha)
+sig_unordered = fdr_bh(p_unordered, alpha)
+cat('Test the FDR function with the ordered inputs:', sig_ordered,'\n')
+cat('Test the FDR function with unordered inputs:', sig_unordered)
+```
+
+```{r}
+# Bonferroni-Holm function with a manual calculation of adjusted p-values
+bonferroni_holm_manual = function(p, alpha) {
+  
+  n = length(p)
+  ord_p = order(p)
+  adj_p = rep(0, n)
+  for (i in 1:n) {
+    adj_p_ = (n-i+1) * p[ord_p[i]]
+    if (adj_p_ > alpha) {
+      adj_p[ord_p[i:n]] = 1
+      break
+      }
+    adj_p[ord_p[i]] = adj_p_
+  }
+  sig = adj_p < alpha
+  
+  return(sig)
+}
+
+# Test the Bonferroni-Holm function with the ordered and unordered inputs.
+p_ordered = c(0.0025, 0.0050, 0.0075, 0.0100, 0.0125, 0.0150, 0.0175, 0.0200, 0.0225, 0.0250)
+p_unordered = c(0.0075, 0.0050, 0.0125, 0.0150, 0.0100, 0.0025, 0.0175, 0.0225, 0.0250, 0.0200)
+alpha = 0.05
+sig_ordered = bonferroni_holm_manual(p_ordered, alpha)
+sig_unordered = bonferroni_holm_manual(p_unordered, alpha)
+cat('Test the Bonferroni-Holm function with the ordered inputs:', sig_ordered,'\n')
+cat('Test the Bonferroni-Holm function with unordered inputs:', sig_unordered)
+```
+
+```{r}
+# FDR function with a manual calculation of adjusted p-values
+fdr_bh_manual = function(p, alpha) {
+  
+  n = length(p)
+  ord_p = order(p)
+  adj_p = rep(0, n)
+  for (i in 1:n) {
+    adj_p_ = (n/i) * p[ord_p[i]]
+    if (adj_p_ > alpha) {
+      adj_p[ord_p[i:n]] = 1
+      break
+      }
+    adj_p[ord_p[i]] = adj_p_
+  }
+  sig = adj_p < alpha
+  
+  return(sig)
+}
+
+# Test the Bonferroni-Holm function with the ordered and unordered inputs.
+p_ordered = c(0.0025, 0.0050, 0.0075, 0.0100, 0.0125, 0.0150, 0.0175, 0.0200, 0.0225, 0.0250)
+p_unordered = c(0.0075, 0.0050, 0.0125, 0.0150, 0.0100, 0.0025, 0.0175, 0.0225, 0.0250, 0.0200)
+alpha = 0.05
+sig_ordered = fdr_bh_manual(p_ordered, alpha)
+sig_unordered = fdr_bh_manual(p_unordered, alpha)
+cat('Test the FDR function with the ordered inputs:', sig_ordered,'\n')
+cat('Test the FDR function with unordered inputs:', sig_unordered)
+```
+
+# Q2
+```{r}
+# Load the CSF biomarker data
+data = read.csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/csf.csv")
+
+# Select the variables and remove any observations with missing values for Ab42.
+data = select(data, Ab42, Group)
+data = na.omit(data)
+
+df_total = length(data$Ab42) - 1
+df_group = length(tapply(data$Ab42, data$Group, mean)) - 1
+df_error = df_total - df_group
+```
+
+
+```{r}
+# Calculate SS_GROUP
+cat('SS_GROUP is: ',sum((tapply(data$Ab42, data$Group, mean) - mean(data$Ab42))^2 * table(data$Group)))
+```
+
+```{r}
+# Calculate SS_TOT
+cat('SS_TOT is: ',sum((data$Ab42 - mean(data$Ab42))^2))
+```
+
+```{r}
+# Calculate SS_ERROR
+cat('SS_ERROR is: ',sum((data$Ab42 - mean(data$Ab42))^2) - sum((tapply(data$Ab42, data$Group, mean) - mean(data$Ab42))^2 * table(data$Group)))
+```
+
+```{r}
+# Calculate MS_GROUP
+cat('MS_GROUP is: ',sum((tapply(data$Ab42, data$Group, mean) - mean(data$Ab42))^2 * table(data$Group)) / (df_group))
+```
+
+```{r}
+# Calculate MS_ERROR
+cat('MS_ERROR is: ',(sum((data$Ab42 - mean(data$Ab42))^2) - sum((tapply(data$Ab42, data$Group, mean) - mean(data$Ab42))^2 * table(data$Group))) / (df_total - df_group))
+```
+
+```{r}
+# Calculate F-statistics
+Fs = (sum((tapply(data$Ab42, data$Group, mean) - mean(data$Ab42))^2 * table(data$Group)) / (df_group)) / ((sum((data$Ab42 - mean(data$Ab42))^2) - sum((tapply(data$Ab42, data$Group, mean) - mean(data$Ab42))^2 * table(data$Group))) / (df_total - df_group))
+cat('F-statistics is: ', Fs)
+```
+
+```{r}
+# Calculate p-value
+p_value = 1 - pf(Fs, df_group, df_error)
+p_value
+```
+
+```{r}
+# Anova function
+anova = aov(Ab42 ~ Group, data = data)
+
+summary(anova)
+```

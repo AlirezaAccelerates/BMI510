@@ -1,0 +1,204 @@
+---
+title: "Homework 9"
+author: "Alireza Rafiei"
+date: "04/04/2023"
+output: 
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+```{r}
+# Required libraries
+library(tidyverse)
+```
+
+***
+#### 1. Linear regression.
+
+We went through a manual linear regression process in class. Follow the same steps using the data in the `death_by_gender` dataset available [here](https://jlucasmckay.bmi.emory.edu/global/bmi510/death_by_gender.csv). This dataset is based on CDC data, and is a sample of deaths recorded during a particular period labeled with gender The columns are `age` and `gender`.
+
+Use `age` as the response variable and `gender` as the predictor variable.
+Treat `F` as the reference group. Fit the following model:
+$$
+age_i=\beta_0+\beta_1\cdot\text{Gender}_i+\epsilon_i
+$$
+
+* Build the design matrix $\mathbf{X}$ and create a matrix version of the response variable `age`. **(1 point)**
+```{r}
+# Load the dataset
+death_by_gender = read_csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/death_by_gender.csv", show_col_types = FALSE)
+
+# Create a binary variable for gender
+death_by_gender = death_by_gender %>% mutate(Gender = ifelse(gender == "M", 1, 0))
+
+# Build the design matrix X
+n = nrow(death_by_gender)
+X = cbind(1, death_by_gender$Gender)
+# Create a matrix version of the response variable age
+y = death_by_gender$age
+
+```
+
+
+* Apply the normal equations to derive the OLS estimates of the $\beta$s. **(1 point)**
+```{r}
+# Compute the transpose of the design matrix X
+X_transpose = t(X)
+
+# Compute the product of X_transpose and X
+XtX = X_transpose %*% X
+
+# Compute the inverse of XtX
+XtX_inverse = solve(XtX)
+
+# Compute the product of X_transpose and the response matrix y
+Xty = X_transpose %*% y
+
+# Compute the OLS estimates of the betas
+betas = XtX_inverse %*% Xty
+
+# Print the estimated betas
+print(betas)
+
+```
+
+
+* Calculate the residuals and the residual sum of squares $RSS$. **(1 point)**
+```{r}
+# Compute the predicted values
+y_hat = X %*% betas
+
+# Compute the residuals
+residuals = y - y_hat
+
+# Calculate the residual sum of squares (RSS)
+RSS = sum(residuals^2)
+
+# Print the RSS
+print(RSS)
+
+```
+
+* Calculate the residual standard error $s$. **(1 point)**
+```{r}
+# Calculate the residual standard error
+n = nrow(death_by_gender) # Number of observations
+p = ncol(death_by_gender) # Number of predictor variables
+
+RSE = sqrt(RSS / (n - p - 1))
+
+# Print the residual standard error
+print(RSE)
+
+```
+
+
+* Calculate $C$, the matrix used to derive the standard errors of the $\beta$s. **(1 point)**
+```{r}
+# Calculate the matrix C
+C = RSE^2 * XtX_inverse
+
+# Print the matrix C
+print(C)
+
+```
+
+
+* Calculate $s_{\beta 1}$, the standard error of $\beta_1$. **(1 point)**
+```{r}
+# Calculate the standard error of beta_1
+s_beta_1 = sqrt(C[2, 2])
+
+# Print the standard error of beta_1
+print(s_beta_1)
+
+```
+
+
+* Calculate a t statistic for $\beta_1$ and compare it to the t-statistic from the function `lm`. **(1 point)**
+```{r}
+# Calculate the t statistic for beta_1 manually
+t_beta_1 = betas[2] / s_beta_1
+
+# Fit the linear model using the lm() function
+model = lm(age ~ Gender, data = death_by_gender)
+
+# Extract the t-statistic for beta_1 from the model summary
+t_beta1_lm = summary(model)$coefficients["Gender", "t value"]
+
+# Print the t statistic for beta_1
+cat("t_beta1", t_beta_1 , "\n", "t_beta1_lm", t_beta1_lm, "\n")
+
+```
+
+
+***
+#### 2. Centering and scaling data for regression.
+
+In many cases, the parameters of linear models can be more interpretable by *centering* and *scaling* the independent and dependent variables prior to entry into regression models. *Centering* refers to removing the mean value of the variable, and *scaling* refers to scaling the variable to have some convenient range. The most common scaling method is to scale the variable so that it has unit variance (and also unit standard deviation, since $\sigma =\sqrt{\sigma^2} = \sqrt{1^2} = 1$).
+
+* Use `apply` to build a function that centers and scales all columns of an input matrix `x`. **(1 point)**
+```{r}
+center_scale = function(x) {
+  # Calculate the mean and standard deviation for each column
+  col_means = apply(x, 2, mean)
+  col_sds = apply(x, 2, sd)
+  
+  # Subtract the mean and divide by the standard deviation for each column
+  centered_scaled_x = scale(x, center = col_means, scale = col_sds)
+  
+  return(centered_scaled_x)
+}
+
+```
+
+
+* Test your function on the first four columns of the `iris` dataset. **(1/2 point)** and compare your results to those of `scale`. **(1/2 point)**
+```{r}
+# Extract the first four columns of the iris dataset
+iris_numeric = iris[, 1:4]
+
+# Center and scale the numeric columns of the iris dataset using the center_scale function
+centered_scaled_iris = center_scale(iris_numeric)
+
+# Center and scale the numeric columns of the iris dataset using the scale function
+centered_scaled_iris_scale = scale(iris_numeric)
+
+# Print the centered and scaled matrices
+#print(centered_scaled_iris)
+#print(centered_scaled_iris_scale)
+
+# Compare the matrices element-wise
+comparison_result = all.equal(centered_scaled_iris, centered_scaled_iris_scale)
+
+# Print the comparison result
+print(comparison_result)
+
+```
+
+
+* Consider the following model: $\text{height}=\beta_0+\beta_1\text{Age}$.
+  * What does $\beta_0$ represent? What does it represent if $\text{Age}$ is centered and scaled prior to fitting the model? **(1/3 point)**
+```{r}
+cat('beta_0 represents the intercept, which is the expected value of the height when the Age variable is equal to 0. In other words, it is the estimated height at the reference level of Age (which is 0 in this case). However, when the Age variable is centered and scaled prior to fitting the model, the interpretation of beta_0 changes. Since the centered and scaled Age variable now represents the number of standard deviations away from the mean Age, the intercept beta_0 represents the expected value of the height when the Age variable is at its mean value (because the centered value of Age is 0).',"\n")
+
+```
+
+
+  * What does $\beta_1$ represent? What does it represent if $\text{Age}$ is centered and scaled prior to fitting the model? **(1/3 point)**
+```{r}
+cat('beta_1 represents the slope, which is the expected change in height for a one-unit increase in Age. In other words, it iss the estimated effect of Age on height, assuming a linear relationship between the two variables. When the Age variable is centered and scaled prior to fitting the model, the interpretation of beta_1 changes. Since the centered and scaled Age variable now represents the number of standard deviations away from the mean Age, the slope beta_1 represents the expected change in height for a one standard deviation increase in Age. This allows for a more standardized interpretation of the effect of Age on height.',"\n")
+
+```
+
+
+  * What does $\beta_1$ represent if $\text{Age}$ is centered and scaled to units of 5 years prior to fitting the model? **(1/3 point)**
+```{r}
+cat('If the Age variable is centered and scaled to units of 5 years prior to fitting the model, the interpretation of beta_1 adjusts accordingly. In this case, the centered and scaled Age variable represents the number of 5-year increments away from the mean Age. So, in the model beta_1 represents the expected change in height for a 5-year increase in Age. In other words, it is the estimated effect of a 5-year increase in Age on height, assuming a linear relationship between the two variables.',"\n")
+
+```
+

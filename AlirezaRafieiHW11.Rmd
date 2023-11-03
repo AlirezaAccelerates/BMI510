@@ -1,0 +1,247 @@
+---
+title: "Homework 11"
+author: "Alireza Rafiei"
+date: "04/19/2023"
+output: 
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+```{r}
+# Required libraries
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+
+## Q1
+# Part.1
+```{r}
+# Load the data
+data = read_csv('https://jlucasmckay.bmi.emory.edu/global/bmi510/diabetes_progression.csv', show_col_types = FALSE)
+
+# Calculate the median value of the progression variable
+median_prog = median(data$progression, na.rm = TRUE)
+
+# Create the new variable prog_cat
+data$prog_cat = ifelse(data$progression > median_prog, 1, 0)
+
+# Discard the original progression variable
+data$progression = NULL
+
+# Preview the modified dataset
+head(data)
+```
+
+
+# Part.2
+```{r}
+# Perform logistic regression using glm
+model = glm(prog_cat ~ ., data = data, family = binomial())
+
+# Get the summary of the fitted model
+summary_model = summary(model)
+
+# Identify the strongest predictor
+predictors = row.names(summary_model$coefficients)
+p_values = summary_model$coefficients[, "Pr(>|z|)"]
+min_p_value = min(p_values[-1]) 
+strongest_predictor = predictors[which.min(p_values)]
+
+cat("Strongest predictor:", strongest_predictor, "\n")
+cat("Smallest p-value:", min_p_value, "\n")
+
+```
+I believe it makes sense that bmi is the strongest predictor based on what I know about diabetes.
+
+
+# Part.3
+```{r}
+# Define the function
+uni_logreg = function(data, predictor) {
+  # Create the formula for logistic regression
+  formula = paste("prog_cat ~", predictor)
+  
+  # Perform logistic regression using glm
+  model_lr = glm(as.formula(formula), data = data, family = binomial())
+  
+  # Return the summary of the fitted model
+  return(summary(model_lr))
+}
+
+# Example usage:
+predictor = "bmi"
+summary_model = uni_logreg(data, predictor)
+print(summary_model)
+
+```
+
+# Part.4
+```{r}
+# List all predictor variables
+predictor_vars = colnames(data)
+predictor_vars = predictor_vars[predictor_vars != "prog_cat"]
+
+# Call the uni_logreg function for each predictor using lapply
+univariate_results = lapply(predictor_vars, function(predictor) {
+  summary_model_u = uni_logreg(data, predictor)
+  coef_u = summary_model_u$coefficients[2, ] # Get coefficients for the predictor (exclude intercept)
+  return(coef_u)
+})
+
+# Combine the results into a dataframe
+results_df_u = do.call(rbind, univariate_results)
+rownames(results_df_u) = predictor_vars
+
+# Display the results
+print(round(results_df_u, 3))
+
+```
+
+# Part.5
+```{r}
+results_df_u = data.frame(results_df_u) %>%
+  mutate(predictor = rep(rownames(univariate_results), 2))
+
+multivariate_results = lapply(predictor_vars, function(predictor) {
+  coef_m = summary(model)$coefficients
+  return(coef_m)
+})
+
+results_df_m = do.call(rbind, multivariate_results)
+
+results_df_m = data.frame(results_df_m) %>%
+  mutate(predictor = rep(rownames(multivariate_results), 2))
+  
+results_df_m = results_df_m[2:11,]
+
+data.combined = data.frame(
+Predictor = c(predictor_vars, predictor_vars),
+Source = factor(c(
+rep("Univariate", 10), rep("Multivariate", 10)
+), levels = unique(c("Univariate","Multivariate"))),
+Estimate = c(results_df_u$Estimate,results_df_m$Estimate)
+)
+
+ggplot(data.combined,
+aes(x = Source, y = Estimate, group = Predictor, color = Predictor)) +
+geom_line(size = 0.7) +
+geom_point(size = 1.5) +
+theme_minimal()
+
+cat('The beta coefficient for the female variable transitions from around 0.02 in the univariate analysis to roughly -1.19 in the multivariate analysis. If the criterion for incorporating a variable was its statistical significance in the univariate case, I would not consider the female variable for inclusion.')
+```
+
+
+## Q2
+# Part.1
+```{r}
+# Perform univariate logistic regression using glm
+uni_model = glm(prog_cat ~ bmi, data=data, family=binomial())
+
+# Summary of the univariate model
+summary(uni_model)
+
+```
+
+
+# Part.2
+```{r}
+# Create the PredictedProbability function
+PredictedProbability = function(BMI, Beta_BMI, Beta_0) {
+  # Compute the linear combination
+  linear_comb= Beta_0 + Beta_BMI * BMI
+  
+  # Apply the logistic function to obtain the predicted probabilities
+  predicted_prob = exp(linear_comb) / (1 + exp(linear_comb))
+  
+  return(predicted_prob)
+}
+
+# Extract Beta_0 and Beta_BMI from the univariate logistic regression model
+Beta_0 = coef(uni_model)["(Intercept)"]
+Beta_BMI = coef(uni_model)["bmi"]
+
+# Example: Compute the predicted probability for a specific BMI value
+example_BMI = 0.5
+predicted_prob_example = PredictedProbability(example_BMI, Beta_BMI, Beta_0)
+
+# Print the predicted probability for the example BMI value
+cat("Predicted probability for example BMI value", example_BMI, "is :", predicted_prob_example)
+
+
+```
+
+# Part.3
+```{r}
+# Load the ggplot2 library for creating the plot
+library(ggplot2)
+
+# Create a sequence of BMI values between -3 and 3
+BMI_values = seq(-3, 3, length.out = 100)
+
+# Compute the predicted probabilities for each BMI value
+predicted_probs = PredictedProbability(BMI_values, Beta_BMI, Beta_0)
+
+# Create a data frame to store BMI values and corresponding predicted probabilities
+plot_data = data.frame(BMI = BMI_values, PredictedProbability = predicted_probs)
+
+# Create the plot
+ggplot(plot_data, aes(x = BMI, y = PredictedProbability)) +
+  geom_line(size = 0.7) +
+  labs(title = "Predicted Probability vs. BMI",
+       x = "BMI",
+       y = "Probability") +
+  theme_minimal()
+
+
+```
+
+
+# Part.4
+```{r}
+# Create the LogLikelihood function
+LogLikelihood = function(beta_bmi, data, Beta_0) {
+  # Compute the predicted probabilities for each observation based on the candidate Beta_BMI value
+  predicted_probs = PredictedProbability(data$bmi, beta_bmi, Beta_0)
+  
+  # Calculate the log likelihood of the observations
+  log_likelihood = sum(data$prog_cat * log(predicted_probs) + (1 - data$prog_cat) * log(1 - predicted_probs))
+  
+  return(log_likelihood)
+}
+
+# Example: Compute the log likelihood for the estimated Beta_BMI from the univariate logistic regression model
+log_likelihood_example = LogLikelihood(Beta_BMI, data, Beta_0)
+
+# Print the log likelihood for the example Beta_BMI value
+cat("Log likelihood for example Beta_BMI value", Beta_BMI, ":", log_likelihood_example)
+
+```
+
+
+# Part.5
+```{r}
+# Create a sequence of beta_bmi values between 0 and 3
+beta_bmi_values = seq(0, 3, length.out = 100)
+
+# Compute the log likelihood for each beta_bmi value
+log_likelihood_values = sapply(beta_bmi_values, function(x) LogLikelihood(x, data, Beta_0))
+
+# Create a data frame to store beta_bmi values and corresponding log likelihood values
+plot_data = data.frame(Beta_BMI = beta_bmi_values, LogLikelihood = log_likelihood_values)
+
+# Create the plot
+ggplot(plot_data, aes(x = Beta_BMI, y = LogLikelihood)) +
+  geom_line(size = 0.7) +
+  labs(title = "Log Likelihood vs. Beta",
+       x = "Beta",
+       y = "Loglikelihood") +
+  theme_minimal()
+
+```
+

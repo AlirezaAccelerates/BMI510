@@ -1,0 +1,303 @@
+---
+title: "Homework 10"
+author: "Alireza Rafiei"
+date: "04/14/2023"
+output: 
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = T)
+```
+
+```{r}
+# Required libraries
+library(tidyverse)
+```
+
+## Q1
+# Part.1
+```{r}
+# Load the data
+data = read_csv('https://jlucasmckay.bmi.emory.edu/global/bmi510/legs.csv', show_col_types = FALSE)
+
+# Display the first few rows of the data
+head(data)
+
+# Plot height vs. left leg length
+ggplot(data, aes(x = leg_left, y = height)) +
+  geom_point() +
+  theme_minimal()+
+  labs(title = "Height vs. Left Leg Length",
+       x = "Left Leg Length (cm)",
+       y = "Height (cm)")
+
+# Plot right leg length vs. left leg length
+ggplot(data, aes(x = leg_left, y = leg_right)) +
+  geom_point() +
+  theme_minimal()+
+  labs(title = "Right Leg Length vs. Left Leg Length",
+       x = "Left Leg Length (cm)",
+       y = "Right Leg Length (cm)")
+```
+
+
+# Part.2
+```{r}
+# Calculate correlation between left and right leg lengths
+correlation = cor(data$leg_left, data$leg_right)
+
+# Print the correlation
+cat("Correlation between left and right leg lengths:", correlation)
+
+```
+
+# Part.3
+```{r}
+ols_beta = function(y, X) {
+  # Convert the input to matrix-like objects if they are not already matrices
+  y = as.matrix(y)
+  X = as.matrix(X)
+  X_transpose = t(X)
+  XTX = X_transpose %*% X
+  
+  # Check the condition number of the matrix
+  condition_number = kappa(XTX)
+  
+  # If the condition number is very large, return a warning and NULL
+  if (condition_number > 1e10) {
+    warning("The matrix (X'X) is nearly singular, and the OLS coefficients cannot be reliably calculated.")
+    return(NULL)
+  }
+  
+  # Calculate the inverse of (XᵀX)
+  XTX_inv = solve(XTX)
+
+  # Calculate β = (XᵀX)⁻¹Xᵀy
+  beta = XTX_inv %*% X_transpose %*% y
+
+  # Return the result
+  return(beta)
+}
+
+```
+
+# Part.4
+```{r}
+# Extract the response vector (height) and predictor (left_leg) from the dataset
+y = data$height
+left_leg = data$leg_left
+
+# Create a model matrix X_L with columns for the intercept and left leg length
+X_L = cbind(1, left_leg)
+
+# Use the ols_beta() function to calculate β_OLS
+beta_OLS = ols_beta(y, X_L)
+
+# Print the OLS coefficients
+cat("Intercept (beta_0):", beta_OLS[1], "\n")
+cat("Coefficient for left leg (beta_L):", beta_OLS[2], "\n")
+
+# Calculate and print the ratio of height to leg length
+h_to_leg_ratio = 1 / beta_OLS[2]
+cat("Height to leg length ratio (based on beta_L):", h_to_leg_ratio, " which is approximately 50%.\n")
+
+```
+
+
+# Part.5
+```{r}
+# Extract the right leg length from the dataset
+right_leg = data$leg_right
+
+# Create a model matrix X_LR with columns for the intercept, left leg length, and right leg length
+X_LR = cbind(X_L, right_leg)
+
+# Use the ols_beta() function to calculate β_LR
+beta_LR = ols_beta(y, X_LR)
+
+# Print the OLS coefficients
+cat("Intercept (beta_0):", beta_LR[1], "\n")
+cat("Coefficient for left leg (beta_L):", beta_LR[2], "\n")
+cat("Coefficient for right leg (beta_R):", beta_LR[3], "\n")
+
+cat("The parameter for leg_left does not retain the value from before.\n")
+
+```
+
+
+## Q2
+# Part.1
+```{r}
+# Create a new variable leg_left_2 as an exact copy of leg_left
+data$leg_left_2 = data$leg_left
+
+# Fit a linear regression model with height as the response and leg_left and leg_left_2 as predictors
+model = lm(height ~ leg_left + leg_left_2, data = data)
+
+# Print the model summary
+summary(model)
+
+# Extract and print the β coefficient for leg_left_2
+beta_leg_left_2 = coef(model)["leg_left_2"]
+cat("Coefficient for leg_left_2 (beta):", beta_leg_left_2, "\n")
+
+```
+
+
+# Part.2
+```{r}
+# Create a model matrix X_L2 with columns for the intercept, leg_left, and leg_left_2
+X_L2 = cbind(1, data$leg_left, data$leg_left_2)
+
+# Attempt to use the ols_beta() function to calculate β_OLS2
+# This will fail due to multicollinearity (perfect collinearity)
+beta_OLS2 = ols_beta(y, X_L2)
+
+# Print the OLS coefficients (if they can be calculated)
+if (!is.null(beta_OLS2)) {
+  cat("Intercept (beta_0):", beta_OLS2[1], "\n")
+  cat("Coefficient for leg_left (beta_L):", beta_OLS2[2], "\n")
+  cat("Coefficient for leg_left_2 (beta_L2):", beta_OLS2[3], "\n")
+} else {
+  cat("The OLS coefficients could not be calculated due to multicollinearity.\n")
+}
+
+```
+
+## Q3
+# Part.1
+```{r}
+# Function to calculate the residual sum of squares (RSS) ||y-Xβ||²
+rss = function(y, X, beta) {
+  residuals = y - X %*% beta
+  rss = sum(residuals^2)
+  return(rss)
+}
+
+# Function to calculate the L1-norm ||β||₁
+l1 = function(beta) {
+  l1_norm = sum(abs(beta))
+  return(l1_norm)
+}
+
+```
+
+
+# Part.2
+```{r}
+# Extract the beta_0 and beta_leg_left coefficients from the previous β_LR calculation
+beta_0 = beta_LR[1]
+beta_leg_left = beta_LR[2]
+
+# Create a sequence of values for beta_leg_right
+beta_leg_right_it = seq(0, 1, by = 0.01)
+
+# Create the tibble
+beta_tibble = tibble(
+  beta_0 = rep(beta_0, length(beta_leg_right_it)),
+  beta_leg_right = beta_leg_right_it,
+  beta_leg_left = rep(beta_leg_left, length(beta_leg_right_it))
+  
+)
+
+head(beta_tibble)
+
+```
+
+
+# Part.3 
+```{r}
+# Define the lambda values
+lambdas = seq(0, 5000, by = 1000)
+
+# Create a tibble with lambda values
+lambda_tibble = tibble(lambda = lambdas)
+
+# Perform a cross join to get all combinations of beta_leg_right and lambda
+beta_lambda_tibble = beta_tibble %>%
+  crossing(lambda_tibble)
+
+# Function to calculate ||y-Xβ||² + λ||β||₁
+calc_value = function(beta_0, beta_leg_right, beta_leg_left, lambda, y, X) {
+  beta = c(beta_0, beta_leg_right, beta_leg_left)
+  penalized_error = rss(y, X_LR,beta) + lambda * l1(beta)
+  return(as.numeric(penalized_error))
+}
+
+# Calculate ||y-Xβ||² + λ||β||₁ for each row
+results_tibble = beta_lambda_tibble %>%
+  mutate(value = pmap_dbl(list(beta_0, beta_leg_right, beta_leg_left, lambda),
+                          calc_value, y = y, X = X_LR))
+
+# Pivot the tibble 
+Pivot_tibble = results_tibble %>%
+  pivot_wider(names_from = lambda, values_from = value)
+
+
+ggplot(Pivot_tibble, aes(x = beta_leg_right)) +
+  geom_point(aes(y = `0`, color = "0"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `1000`, color = "1000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `2000`, color = "2000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `3000`, color = "3000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `4000`, color = "4000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `5000`, color = "5000"),size=1.3, alpha=0.6) +
+  labs(title = "Penalized Error vs. Leg Right",
+       x = "Beta Leg Right",
+       y = "Penalized Error",
+       color = "Lambda") +
+  theme_minimal()
+```
+
+# Swaping beta left with right
+```{r}
+beta_leg_r = beta_LR[3]
+
+# Create the new tibble
+beta_tibble_new = tibble(
+  beta_0 = rep(beta_0, length(beta_leg_right_it)),
+  beta_leg_right = beta_leg_right_it,
+  beta_leg_left = rep(beta_leg_r, length(beta_leg_right_it))
+  
+)
+# Define the lambda values
+lambdas = seq(0, 5000, by = 1000)
+
+# Create a tibble with lambda values
+lambda_tibble = tibble(lambda = lambdas)
+
+# Perform a cross join to get all combinations of beta_leg_right and lambda
+beta_lambda_tibble = beta_tibble_new %>%
+  crossing(lambda_tibble)
+
+# Function to calculate ||y-Xβ||² + λ||β||₁
+calc_value = function(beta_0, beta_leg_right, beta_leg_left, lambda, y, X) {
+  beta = c(beta_0, beta_leg_right, beta_leg_left)
+  penalized_error = rss(y, X_LR,beta) + lambda * l1(beta)
+  return(as.numeric(penalized_error))
+}
+
+# Calculate ||y-Xβ||² + λ||β||₁ for each row
+results_tibble = beta_lambda_tibble %>%
+  mutate(value = pmap_dbl(list(beta_0, beta_leg_right, beta_leg_left, lambda),
+                          calc_value, y = y, X = X_LR))
+
+# Pivot the tibble 
+Pivot_tibble = results_tibble %>%
+  pivot_wider(names_from = lambda, values_from = value)
+
+
+ggplot(Pivot_tibble, aes(x = beta_leg_right)) +
+  geom_point(aes(y = `0`, color = "0"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `1000`, color = "1000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `2000`, color = "2000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `3000`, color = "3000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `4000`, color = "4000"),size=1.3, alpha=0.6) +
+  geom_point(aes(y = `5000`, color = "5000"),size=1.3, alpha=0.6) +
+  labs(title = "Penalized Error vs. Leg Right",
+       x = "Beta Leg Right",
+       y = "Penalized Error",
+       color = "Lambda") +
+  theme_minimal()
+```

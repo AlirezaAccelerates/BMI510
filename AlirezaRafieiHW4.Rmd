@@ -1,0 +1,276 @@
+---
+title: "BMI 510: Homework #4"
+author: "Alireza Rafiei"
+date: "02/11/2023"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+```{r }
+# Required libraries
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(ggstatsplot)
+library(MASS) 
+library(reshape2) 
+library(reshape) 
+```
+
+# Q1
+1. There is a dataset of clinical variables and self-reported fall history from people with Parkinson's disease available at [https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv]. Identify the sample mean and sample standard deviation of the `Age` variable. Exclude any cases under 35 years old. **1 point**
+
+```{r }
+Parkinson_mean_std = function(data, verbose = 0){
+
+  data_filtered = data[which(data$Age >= 35),]
+  if (verbose == 1){
+    print(sprintf("std is %.4f",sd(data_filtered$Age)))
+    print(sprintf("mean is %.4f",mean(data_filtered$Age)))
+  }
+  invisible(mean(data_filtered$Age))
+}
+
+Parkinson_mean_std(read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",show_col_types = FALSE), verbose = 1)
+```
+
+
+# Q2
+2. Calculate the likelihood of the estimates for the mean and standard deviation you have obtained given the sample. (Assume a normal distribution.) as you sweep the estimate of average age through ±2 years. Specifically, create a function `Lik(a)` that returns the likelihood of the data given an estimate of the population mean age `a` **(1/2 point)** and plot the likelihood as a function of `a` as you sweep it over ±2 years. **(1/2 point)**
+
+```{r }
+
+Lik = function(a){
+  
+  data = read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",show_col_types = FALSE)
+  data_filtered = data[which(data$Age >= 35),]
+  mean_park = mean(data_filtered$Age)
+  sd_park = sd(data_filtered$Age)
+  
+  liklihood = 1
+  for (i in 1:length(data_filtered$Age)){
+    lik = dnorm(x=data_filtered$Age[i], a, sd=sd_park)
+    liklihood = lik*liklihood
+  }
+  return(liklihood)
+  
+}
+a = Parkinson_mean_std(read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",,show_col_types = FALSE))
+curve(Lik, from= a-2, to= a+2, xlab="Mean age (excluded under 35) \u00B1 2", ylab=" Likelihood")
+```
+
+
+# Q3
+3. Now plot the *log* likelihood as you sweep the estimate of average age through ±2 years. **(1 point)** *(Note that you have to use a sum, not a product, here.)*
+
+```{r }
+Log_Lik = function(a){
+  data = read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",show_col_types = FALSE)
+  data_filtered = data[which(data$Age >= 35),]
+  mean_park = mean(data_filtered$Age)
+  sd_park = sd(data_filtered$Age)
+  
+  log_liklihood = 0
+  for (i in 1:length(data_filtered$Age)){
+    lik = dnorm(x=data_filtered$Age[i], a, sd=sd_park)
+    log_liklihood = log(lik)+log_liklihood
+  }
+  #log_liklihood = log(Lik(a))
+  return(log_liklihood)
+}
+
+a = Parkinson_mean_std(read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",,show_col_types = FALSE))
+
+curve(Log_Lik, from= a-2, to= a+2, xlab="Mean age (excluded under 35) \u00B1 2", ylab="Log likelihood")
+
+```
+
+
+# Q4
+4. Using the answers for the last two questions, use a grid-based approach to find the maximum likelihood estimator for `a`.  **(1/2 point)** Do the same for the maximum log-likelihood estimator. **(1/2 point)** Do they differ?
+
+```{r }
+grid_search = function(n){
+  Age = c()
+  likelihood = c()
+  log_likelihood = c()
+  
+    a = 67.37
+  for (i in seq(a-2, a+2, by=n)){
+    Lik_value = Lik(i)
+    Log_Lik_value = Log_Lik(i)
+    
+    Age = c(Age, i)
+    likelihood = c(likelihood, Lik_value)
+    log_likelihood = c(log_likelihood, Log_Lik_value)
+
+    
+  } 
+
+  df = data.frame(Age, likelihood, log_likelihood)
+  max_age_lik = which.max(df$likelihood)
+  max_age_log_lik = which.max(df$log_likelihood)
+    
+  print(sprintf("Max likelihood is %e for an estimate of mean age %f",max(df$likelihood),df$Age[max_age_lik]))
+  print(sprintf("Max likelihood is %e for an estimate of mean age %f",max(df$log_likelihood),df$Age[max_age_log_lik]))
+
+  
+}
+
+# chose the step of your grid search
+grid_search(0.01)
+```
+
+
+# Q5
+5. One of the things we noted was that using the sample standard deviation to estimate the population standard deviation can bias the estimate. Therefore, we often see `N-1` normalization in the standard deviation equation instead of `N`. Calculate and compare the likelihood of the data under the biased and unbiased estimators for the standard deviation. Which estimate for the standard deviation is larger? Which estimate is more likely? **(1 point)**
+
+```{r }
+sd_usd = function(a){
+  
+  data = read_csv("https://jlucasmckay.bmi.emory.edu/global/mckay_2021/S1.csv",show_col_types = FALSE)
+  data_filtered = data[which(data$Age >= 35),]
+  sd_park = sd(data_filtered$Age)
+  usd_park = sqrt(var(data_filtered$Age)*((length(data_filtered$Age))/(length(data_filtered$Age)-1)))
+  
+  liklihood_sd = Lik(a)
+  
+  liklihood_usd = 1
+  for (i in 1:length(data_filtered$Age)){
+    lik_usd = dnorm(x=data_filtered$Age[i], a, sd=usd_park)
+    liklihood_usd = lik_usd*liklihood_usd
+  }
+  
+    print(sprintf("likelihood of the data under the biased estimators for the standard deviation is %e",liklihood_sd))
+    print(sprintf("likelihood of the data under the unbiased estimators for the standard deviation is %e",liklihood_usd))
+  
+}
+
+sd_usd(67.3694)
+
+#
+```
+
+
+# Q6
+6. Let `X` be a continuous random variable with the piecewise-defined probability density function $f(x)$ equal to 0.75, $0≤x≤1$, 0.25, $2≤x≤3$, 0 elsewhere. Plot the density $f(x)$. **(1 point)**
+
+```{r }
+fx = function(x){ifelse((x >= 0 & x <= 1), 0.75, ifelse((x < 2 & x > 1), 0, ifelse((x >= 2 & x <= 3),  0.25,ifelse((x <0), 0,ifelse((x > 3), 0,NA)))))}
+
+plot(fx,xlim=c(-1,4),lwd=2.5)
+```
+
+
+# Q7
+7. Plot the cumulative density $F(x)$. **(1 point)**
+
+```{r }
+#f(x) = 0.75 for 0 <= x <= 1
+#       0.25 for 2 <= x <= 3
+#       0 elsewhere
+# -->  F(x) = 0.75x for 0 <= x <= 1
+#             0.75  for 1 <= x <= 2
+#             0.25x+0.25 for 2 <= x <= 3
+#             0 elsewhere
+
+CDF = function(x){ifelse((x >= 0 & x <= 1), 0.75*x, ifelse((x < 2 & x > 1), 0.75, ifelse((x >= 2 & x <= 3),  (0.25*x+0.25),ifelse((x <0), 0,ifelse((x > 3), 1,NA)))))}
+
+plot(CDF,xlim=c(-1,4), lwd=2.5)
+
+```
+
+
+# Q8
+8. Using the sample redcap dataset available at [https://jlucasmckay.bmi.emory.edu/global/bmi510/gait.csv], identify the unique patients and summarize the ratio of women to men. Also report how many missing values there are. (The sex variable codes 0 for male, 1 for female.) **(1/2 point)** Then, calculate (and plot) the (Pearson's) correlation between gait speed and cadence. **(1/2 point)**
+
+```{r }
+data = read_csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/gait.csv",show_col_types = FALSE)
+# Unique patients
+unique_records = unique(data$record_id)
+# Number of unique patients
+number_unique_records = length(data$record_id)
+
+# Number of males and females
+table(data$sex)
+# 438 male and 288 female
+
+# Ratio of women to men is 0.6575342
+print(sprintf("Ratio of women to men is %f",table(data$sex)[[2]]/table(data$sex)[[1]]))
+# Number of missing values in the sex column is 1103
+print(sprintf("Number of missing values in the sex column is %i",sum(is.na(data$sex))))
+
+# The correlation between gait speed and cadence is 0.5724
+cor(data$speed, data$cadence, method = 'pearson', use = "complete.obs")
+#print(sprintf("The correlation between gait speed and cadence is  %f", correlation))
+
+ggscatterstats(data = data,x = speed ,y = cadence, bf.message = FALSE)
+
+```
+
+
+# Q9
+9. We have not discussed (at least at length) joint frequency functions / probability mass functions, but they are a generalization of probability mass functions for a single random variable. Say the joint frequency function of two discrete random variables, X and Y, is as follows:
+
+X   Y=1   Y=2   Y=3   Y=4
+-   ---   ---   ---   ---
+1   0.10  0.05  0.02  0.02
+2   0.05  0.20  0.05  0.02
+3   0.02  0.05  0.20  0.04
+4   0.02  0.02  0.04  0.10
+
+These data are available at [https://jlucasmckay.bmi.emory.edu/global/bmi510/joint_frequency.csv] Columns 2 through 4 are named Y1, Y2, Y3, and Y4. Completely melt the data **(1/2 point)** and extract numerical values from the codes `Y1`, `Y2`, etc. **(1/2 point)**
+
+```{r }
+data = read_csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/joint_frequency.csv",show_col_types = FALSE)
+
+# Melt data
+#melt_data = melt(data,id = c("Y1","Y2","Y3","Y4"))
+
+melt_data = melt(data.frame(data),id = "X")
+
+print("Reshaped data frame is:") 
+print(melt_data) 
+
+# Extract numerical values
+num = sapply(melt_data, is.numeric)
+extracted_values = melt_data[,num]
+print(extracted_values)
+
+```
+
+
+# Q10
+10. Find and plot the marginal frequency functions of X and Y. In the two-by-two table above, these would be the row and column sums. (The margins.)  To what do the frequencies sum? **(1 point)**
+
+```{r }
+data = read_csv("https://jlucasmckay.bmi.emory.edu/global/bmi510/joint_frequency.csv",show_col_types = FALSE)
+
+Freq_y1 = sum(data["Y1"])
+Freq_y2 = sum(data["Y2"])
+Freq_y3 = sum(data["Y3"])
+Freq_y4 = sum(data["Y4"])
+
+Freq_y = data.frame(vars = c("Y1", "Y2", "Y3", "Y4"), Freqs= c(Freq_y1,Freq_y2 ,Freq_y3 ,Freq_y4))
+
+ggplot(Freq_y, aes(x = vars, y = Freqs))+ 
+  geom_bar(stat = 'identity')+
+  ggtitle("Marginal frequency functions of y")
+
+Freq_x1 = rowSums(data[1,2:5])
+Freq_x2 = rowSums(data[2,2:5])
+Freq_x3 = rowSums(data[3,2:5])
+Freq_x4 = rowSums(data[4,2:5])
+
+Freq_x = data.frame(vars = c("X1", "X2", "X3", "X4"), Freqs= c(Freq_x1,Freq_x2 ,Freq_x3 ,Freq_x4))
+
+ggplot(Freq_x, aes(x = vars, y = Freqs))+ 
+  geom_bar(stat = 'identity')+
+  ggtitle("Marginal frequency functions of X")
+```
+

@@ -1,0 +1,403 @@
+---
+title: "Homework 8"
+author: "Alireza Rafiei"
+date: "03/25/2023"
+output: 
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+
+# Q1
+## Part.1
+```{r}
+# Sensitivity function.
+
+# Args:
+#   pred: a vector of predictions, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+#   truth: a vector of ground truth values, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+# Returns:
+#   sensitivity: the sensitivity of the classifier
+
+sensitivity = function(pred, truth) {
+  
+  # Ensure that the input vectors have the same length
+  if (length(pred) != length(truth)) {
+    stop("Error: Prediction and truth vectors must have the same length.")
+  }
+  
+  # Convert inputs to logical if they are numerical
+  if (is.numeric(pred)) {
+    pred = pred == 1
+  }
+  if (is.numeric(truth)) {
+    truth = truth == 1
+  }
+  
+  # Calculate the number of true positives
+  true_positives = sum(pred & truth)
+  
+  # Calculate the number of false negatives
+  false_negatives = sum(!pred & truth)
+  
+  # Calculate sensitivity
+  sensitivity = true_positives / (true_positives + false_negatives)
+  
+  return(sensitivity)
+}
+
+
+# Example
+
+# Sample predictions and ground truth values
+predictions = c(1, 0, 1, 1, 0, 1, 0, 0)
+ground_truth = c(1, 0, 0, 1, 0, 1, 1, 1)
+
+# Calculate sensitivity
+sens = sensitivity(predictions, ground_truth)
+cat("Sensitivity:", sens)
+
+```
+
+## Part.2
+```{r}
+# Specificity function.
+
+# Args:
+#   pred: a vector of predictions, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+#   truth: a vector of ground truth values, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+# Returns:
+#   specificity: the specificity of the classifier
+
+specificity = function(pred, truth) {
+  
+  # Ensure that the input vectors have the same length
+  if (length(pred) != length(truth)) {
+    stop("Error: Prediction and truth vectors must have the same length.")
+  }
+  
+  # Convert inputs to logical if they are numerical
+  if (is.numeric(pred)) {
+    pred = pred == 1
+  }
+  if (is.numeric(truth)) {
+    truth = truth == 1
+  }
+  
+  # Calculate the number of true negatives
+  true_negatives = sum(!pred & !truth)
+  
+  # Calculate the number of false positives
+  false_positives = sum(pred & !truth)
+  
+  # Calculate specificity
+  specificity = true_negatives / (true_negatives + false_positives)
+  
+  return(specificity)
+}
+
+# Example
+
+# Sample predictions and ground truth values
+predictions = c(1, 0, 1, 1, 0, 1, 0, 0)
+ground_truth = c(1, 0, 0, 1, 0, 1, 1, 1)
+
+# Calculate specificity
+spec = specificity(predictions, ground_truth)
+cat("Specificity:", spec)
+
+```
+
+## Part.3
+```{r}
+# Precision function.
+
+# Args:
+#   pred: a vector of predictions, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+#   truth: a vector of ground truth values, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+# Returns:
+#   precision: the precision of the classifier.
+
+precision = function(pred, truth) {
+  
+  # Ensure that the input vectors have the same length
+  if (length(pred) != length(truth)) {
+    stop("Error: Prediction and truth vectors must have the same length.")
+  }
+  
+  # Convert inputs to logical if they are numerical
+  if (is.numeric(pred)) {
+    pred = pred == 1
+  }
+  if (is.numeric(truth)) {
+    truth = truth == 1
+  }
+  
+  # Calculate the number of true positives
+  true_positives = sum(pred & truth)
+  
+  # Calculate the number of false positives
+  false_positives = sum(pred & !truth)
+  
+  # Calculate precision
+  precision = true_positives / (true_positives + false_positives)
+  
+  return(precision)
+}
+
+# Example
+
+# Sample predictions and ground truth values
+predictions = c(1, 0, 1, 1, 0, 1, 0, 0)
+ground_truth = c(1, 0, 0, 1, 0, 1, 1, 1)
+
+# Calculate precision
+prec <- precision(predictions, ground_truth)
+cat("Precision:", prec)
+
+```
+
+## Part.4
+```{r}
+# Recall function.
+
+# Args:
+#   pred: a vector of predictions, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+#   truth: a vector of ground truth values, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+# Returns:
+#   Recall: the recall of the classifier.
+
+recall = function(pred, truth) {
+  
+  # Ensure that the input vectors have the same length
+  if (length(pred) != length(truth)) {
+    stop("Error: Prediction and truth vectors must have the same length.")
+  }
+  
+  # Convert inputs to logical if they are numerical
+  if (is.numeric(pred)) {
+    pred = pred == 1
+  }
+  if (is.numeric(truth)) {
+    truth = truth == 1
+  }
+  
+  # Calculate the number of true positives
+  true_positives = sum(pred & truth)
+  
+  # Calculate the number of false negatives
+  false_negatives = sum(!pred & truth)
+  
+  # Calculate recall
+  recall = true_positives / (true_positives + false_negatives)
+  
+  return(recall)
+}
+
+
+# Example
+
+# Sample predictions and ground truth values
+predictions = c(1, 0, 1, 1, 0, 1, 0, 0)
+ground_truth = c(1, 0, 0, 1, 0, 1, 1, 1)
+
+# Calculate sensitivity
+rec = recall(predictions, ground_truth)
+cat("Recall:", rec)
+```
+
+## Part.5
+```{r}
+# F1 score function.
+
+# Args:
+#   pred: a vector of predictions, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+#   truth: a vector of ground truth values, either logical or numerical (1s corresponding to positives and 0s corresponding to negatives).
+# Returns:
+#   f1_score: the F1 score of the classifier.
+
+f1_score = function(pred, truth) {
+  
+  # Ensure that the input vectors have the same length
+  if (length(pred) != length(truth)) {
+    stop("Error: Prediction and truth vectors must have the same length.")
+  }
+  
+  # Convert inputs to logical if they are numerical
+  if (is.numeric(pred)) {
+    pred = pred == 1
+  }
+  if (is.numeric(truth)) {
+    truth = truth == 1
+  }
+  
+  # Calculate precision
+  precision = sum(pred & truth) / (sum(pred & truth) + sum(pred & !truth))
+  
+  # Calculate recall (sensitivity)
+  recall = sum(pred & truth) / (sum(pred & truth) + sum(!pred & truth))
+  
+  # Calculate F1 score
+  f1_score = 2 * (precision * recall) / (precision + recall)
+  
+  return(f1_score)
+}
+
+
+# Example
+
+# Sample predictions and ground truth values
+predictions = c(1, 0, 1, 1, 0, 1, 0, 0)
+ground_truth = c(1, 0, 0, 1, 0, 1, 1, 1)
+
+# Calculate F1 score
+f1 = f1_score(predictions, ground_truth)
+cat("F1 Score:", f1)
+
+```
+
+# Q2
+## Part.1
+```{r}
+# Number of observations for each class
+n_A = 800
+n_B = 150
+n_C = 50
+
+# Total number of observations
+n_total = n_A + n_B + n_C
+
+# Class probabilities
+p_CA = n_A / n_total
+p_CB = n_B / n_total
+p_CC = n_C / n_total
+
+# Display class probabilities
+cat("p(C_A) =", p_CA, "\n")
+cat("p(C_B) =", p_CB, "\n")
+cat("p(C_C) =", p_CC, "\n")
+```
+
+## Part.2
+```{r}
+GaussProb = function(x, m, s) {
+  # Calculate the Gaussian probability density for each xi
+  gauss_pdf = (1 / (s * sqrt(2 * pi))) * exp(-0.5 * ((x - m) / s)^2)
+  
+  # Calculate the probability of product(p(xi|Ck))
+  prod_prob = prod(gauss_pdf)
+  
+  return(prod_prob)
+}
+
+```
+
+## Part.3
+```{r}
+GaussProbA = function(x) {
+  mean_A = c(7, 1)
+  std_A = c(4, 1)
+  return(GaussProb(x, mean_A, std_A))
+}
+
+GaussProbB = function(x) {
+  mean_B = c(1, 7)
+  std_B = c(1, 4)
+  return(GaussProb(x, mean_B, std_B))
+}
+
+GaussProbC = function(x) {
+  mean_C = c(1, 1)
+  std_C = c(1, 1)
+  return(GaussProb(x, mean_C, std_C))
+}
+
+
+# Example vector x
+x = c(3, 5)
+
+# Calculate probability of product(p(xi|Ck)) for each class
+prob_A = GaussProbA(x)
+prob_B = GaussProbB(x)
+prob_C = GaussProbC(x)
+
+# Display the results
+cat("Probability product for class A: ", prob_A, "\n")
+cat("Probability product for class B: ", prob_B, "\n")
+cat("Probability product for class C: ", prob_C, "\n")
+
+```
+
+## Part.4
+```{r}
+softmax = function(x) {
+  exp_x = exp(x)
+  return(exp_x / sum(exp_x))
+}
+
+ClassProb = function(x) {
+  # Calculate the probability of product(p(xi|Ck)) for each class
+  prob_A = GaussProbA(x) * p_CA
+  prob_B = GaussProbB(x) * p_CB
+  prob_C = GaussProbC(x) * p_CC
+
+  # Normalize the class predictions using the softmax function
+  probs = softmax(c(prob_A, prob_B, prob_C))
+
+  # Return the probabilities
+  return(probs)
+}
+
+# Example vector x
+x = c(3, 5)
+
+# Calculate probabilities for each class
+probs = ClassProb(x)
+
+# Display the results
+cat("Normalized probability for class A: ", probs[1], "\n")
+cat("Normalized probability for class B: ", probs[2], "\n")
+cat("Normalized probability for class C: ", probs[3], "\n")
+
+
+```
+
+## Part.5
+```{r}
+# Vectors
+x1 = c(7, 1)
+x2 = c(1, 7)
+x3 = c(1, 1)
+
+# Calculate probabilities for each vector
+probs1 = ClassProb(x1)
+probs2 = ClassProb(x2)
+probs3 = ClassProb(x3)
+
+# Find the most likely class for each vector
+most_likely_class1 = which.max(probs1)
+most_likely_class2 = which.max(probs2)
+most_likely_class3 = which.max(probs3)
+
+# Display the results
+cat("Most likely class for (7, 1): ", most_likely_class1, "\n")
+cat("Most likely class for (1, 7): ", most_likely_class2, "\n")
+cat("Most likely class for (1, 1): ", most_likely_class3, "\n\n")
+
+cat("Here, the classes are represented by integers, where class A is 1, class B is 2, and class C is 3. 
+The most likely classes for the given vectors are:
+(7, 1): Class A
+(1, 7): Class B
+(1, 1): Class A
+
+The most likely class for the vector (1, 1) is Class A. This is because the Naive Bayes classifier 
+takes into account both the likelihood p(xi|Ck) and the prior probability p(Ck) of each class. 
+Although the likelihoods of (1, 1) for classes A and C are similar due to their identical mean 
+and standard deviation for variable x1 and x2, the prior probability of Class A is much higher 
+(0.8) than that of Class C (0.05). This higher prior probability makes Class A more likely for 
+the vector (1, 1) according to the Naive Bayes classifier.")
+```

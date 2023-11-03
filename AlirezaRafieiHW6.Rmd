@@ -1,0 +1,248 @@
+---
+title: "Homework 6"
+author: "Alireza Rafiei"
+date: "03/05/2023"
+output: 
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, message = F, warning = F)
+```
+
+```{r}
+# Required libraries
+library(ggplot2)
+```
+
+
+## Q1
+# Part 1.
+```{r}
+power_to_n = function(d, power) {
+  # Calculate minimum sample size for given effect size and power
+  n = power.t.test(n = NULL, d = d, power = power, type = "two.sample")$n
+  
+  # Round up to nearest integer
+  n = ceiling(n)
+  
+  return(n)
+}
+```
+
+# Part 2.
+```{r}
+# Define the power levels and effect sizes to use
+powers = c(0.8, 0.9, 0.95)
+ds = seq(0.2, 2.0, by = 0.01)
+
+# Create a data frame to hold the results
+results = data.frame(d = numeric(0), power = numeric(0), n = numeric(0))
+
+# Loop through each power level and effect size, calculate the minimum sample size, and add the result to the data frame
+for (p in powers) {
+  for (d in ds) {
+    n = power_to_n(d = d, power = p)
+    results = rbind(results, data.frame(d = d, power = p, n = n))
+  }
+}
+
+# Create the plot
+ggplot(results, aes(x = d, y = n, group = factor(power, levels = rev(powers)), color = factor(power, levels = rev(powers)))) +
+  geom_line(size = 0.8) +
+  scale_x_continuous("d") +
+  scale_y_continuous("n") +
+  theme_minimal() + theme(legend.position="bottom") +
+  scale_color_manual("Power", values = c("orange", "red", "black"))
+```
+
+```{r}
+# Define the power levels and effect sizes to use
+powers = c(0.8, 0.9, 0.95)
+ds = seq(0.2, 2.0, by = 0.01)
+
+# Create a data frame to hold the results
+results = data.frame(d = numeric(0), power = numeric(0), n = numeric(0))
+
+# Loop through each power level and effect size, calculate the minimum sample size, and add the result to the data frame
+for (p in powers) {
+  for (d in ds) {
+    n = power_to_n(d = d, power = p)
+    results = rbind(results, data.frame(d = d, power = p, n = n))
+  }
+}
+
+
+
+# Create the plot with a logarithmic y-axis scale
+ggplot(results, aes(x = d, y = n, group = factor(power, levels = rev(powers)), color = factor(power, levels = rev(powers)))) +
+  geom_line(size = 0.8) + 
+  scale_x_continuous("d") +
+  scale_y_log10("n") +
+  theme_minimal() + theme(legend.position="bottom") +
+  scale_color_manual("Power", values = c("orange", "red", "black"))
+```
+
+# Part 3.
+```{r}
+print("The staircase shape in the logarithmic plot for high values of d is a result of the discrete nature of the minimum sample size. As the effect size (Cohen's d) increases, the required sample size to achieve a given power decreases rapidly. However, the minimum sample size is calculated based on integer values of sample size, so the required sample size appears to change in steps rather than smoothly.")
+```
+
+## Q2
+# Part 1.
+```{r}
+Result = c('Promote','Hold','Total')
+Male = c(21,3,24)
+Female = c(14,10,24)
+Total = c(35,13,48)
+
+df = data.frame(Result = Result, Male = Male, Female = Female, Total = Total)
+
+
+# Calculate the probability using dhyper
+prob = dhyper(df$Male[1], df$Total[1], df$Total[2], df$Male[3])
+
+# Print the probability
+prob
+```
+
+# Part 2.
+```{r}
+# Define the parameters of the hypergeometric distribution
+m = df$Total[1] # number of successes
+n = df$Total[2] # number of failures
+
+# Calculate the probabilities for all the cells
+cat('Male_prob', dhyper(df$Male[1], m, n, df$Male[3]),'\n')
+cat('Female_prob', dhyper(df$Female[1], m, n, df$Female[3]),'\n')
+cat('Hold_Male_prob', dhyper(df$Male[2], n, m, df$Male[3]),'\n')
+cat('Hold_Female_prob', dhyper(df$Female[2], n, m, df$Female[3]),'\n\n')
+
+print("We have a contingency table with two rows and two columns, and the degrees of freedom for Fisher's exact test is (num_rows - 1) * (num_columns - 1). Thus, the degrees of freedom is (2 - 1) * (2 - 1) = 1, which means we have *one* degree of freedom for the test. So, as the results show, we need to one cell to test to perform Fisher’s exact test.")
+```
+
+# Part 3.
+```{r}
+# Create a matrix of the count data
+counts = matrix(c(Male[1], Female[1], Male[2], Female[2]), nrow = 2, byrow = TRUE,
+                       dimnames = list(c("Promote", "Hold"), c("Male", "Female")))
+
+# Perform a chi-squared test
+Chi_2 = chisq.test(counts)
+
+# Display the test results
+print(Chi_2)
+
+print("If the p-value is less than or equal to the significance level of 0.05, we reject the null hypothesis of no association between gender and promotion status. If the p-value is greater than 0.05, we fail to reject the null hypothesis. Based on the output of the chisq.test() function, the p-value is 0.05132, which is slightly greater than 0.05. Therefore, we fail to reject the null hypothesis at the 0.05 significance level, which means there is not sufficient evidence to conclude that there is an association between gender and promotion status. However, since the p-value is very close to the significance level, we may want to consider other factors such as the sample size and effect size before making a final decision.")
+```
+
+## Q3
+# Part 1.
+
+```{r}
+waldci = function(p_hat, n, alpha) {
+  # Calculate standard error of the proportion
+  se = sqrt(p_hat * (1 - p_hat) / n)
+  
+  # Calculate margin of error
+  z_star = qnorm(1 - alpha / 2)
+  me = z_star * se
+  
+  # Calculate lower and upper bounds of confidence interval
+  lower = p_hat - me
+  upper = p_hat + me
+  
+  # Return confidence interval
+  return(c(lower, upper))
+}
+
+# Example
+#p_hat = 0.6
+#n = 100
+#alpha = 0.05
+
+#waldci(p_hat, n, alpha)
+
+# Result: [1] 0.5039818 0.6960182
+```
+
+# Part 2.
+```{r}
+coverageProb = function(p, n_trials, n_replicates, alpha) {
+  # Initialize counter for number of confidence intervals that contain p
+  num_contain = 0
+  
+  for (i in 1:n_replicates) {
+    # Generate Bernoulli trials with probability p
+    trials = rbinom(n_trials, 1, p)
+    
+    # Calculate proportion of successes
+    p_hat = mean(trials)
+    
+    # Calculate Wald confidence interval
+    ci = waldci(p_hat, n_trials, alpha)
+    
+    # Check if p is contained in the confidence interval
+    if (ci[1] <= p && ci[2] >= p) {
+      num_contain = num_contain + 1
+    }
+  }
+  
+  # Calculate proportion of confidence intervals that contain p
+  prop_contain = num_contain / n_replicates
+  
+  # Return proportion
+  return(prop_contain)
+}
+
+# Example
+#p = 0.3
+#n_trials = 50
+#n_replicates = 1000
+#alpha = 0.05
+
+#coverageProb(p, n_trials, n_replicates, alpha)
+
+# Result: 0.932
+```
+
+# Part 3.
+```{r}
+# Define range of p values
+p_vals = seq(0.001, 0.999, by = 0.001)
+
+# Define values of n_trials
+n_trials = c(12, 50, 1000)
+
+# Define significance level
+alpha = 0.05
+
+# Initialize matrix to store results
+results = matrix(NA, nrow = length(p_vals), ncol = length(n_trials))
+
+# Calculate coverage probability for each combination of p and n_trials
+for (i in 1:length(p_vals)) {
+  for (j in 1:length(n_trials)) {
+    p = p_vals[i]
+    n = n_trials[j]
+    prop_contain = coverageProb(p, n, n_replicates = 1000, alpha)
+    results[i,j] = prop_contain
+  }
+}
+```
+
+# Part 4.
+```{r}
+# Convert results to data frame
+df = data.frame(p = rep(p_vals, length(n_trials)),
+                 coverage = c(results[,1], results[,2], results[,3]),
+                 n_trials = rep(n_trials, each = length(p_vals)))
+
+# Plot results using ggplot2
+ggplot(df, aes(x = p, y = coverage, group = n_trials, color = factor(n_trials))) +
+  geom_line(size = 1) +
+  labs(x = "p", y = "Probability that Wald CI covers p", color = "Sample Size") +
+  scale_color_manual(values = c("orange","pink","red")) +
+  theme_minimal()
+```
